@@ -12,7 +12,7 @@ Alpine NAT VPS 一键安装 VLESS + TCP + REALITY + Vision。
 
 ```sh
 apk add --no-cache curl
-curl -L -o install.sh https://raw.githubusercontent.com/你的用户名/xray-reality-nat-alpine/main/install.sh
+curl -L -o install.sh https://raw.githubusercontent.com/hhddyhiid/xray-reality-nat-alpine/main/install.sh
 ash install.sh
 查看状态
 rc-service xray status
