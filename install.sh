@@ -18,22 +18,25 @@ Usage:
   ash install.sh --sni www.ubuntu.com
 
 Options:
-  --local    Local listen port. (CRITICAL for NAT VPS: Must be an allowed port)
+  --local    Local listen port. Default: random port
   --public   Public forwarded port. Optional
   --name     Node name. Default: Reality-TCP-NAT
-  --sni      REALITY SNI. Default: www.microsoft.com (Tip: Choose an SNI matching your VPS location)
+  --sni      REALITY SNI. Default: www.microsoft.com
   --dest     REALITY dest. Default: <SNI>:443
   -h|--help  Show help
 
 Examples:
-  # Random local port, suitable for dedicated IP VPS
+  # Random local port, suitable for dedicated public IP VPS
   ash install.sh
 
   # Random local port, known public NAT port
   ash install.sh --public 49330
 
-  # Fixed local port and known public NAT port (Recommended for NAT VPS)
-  ash install.sh --local 8443 --public 49330 --name JP-Reality-TCP --sni www.ubuntu.com
+  # Fixed local port and known public NAT port, recommended for fixed NAT mapping
+  ash install.sh --local 8443 --public 49330 --name JP-Reality-TCP
+
+  # Custom SNI
+  ash install.sh --local 8443 --public 49330 --sni www.ubuntu.com
 EOF
 }
 
@@ -66,6 +69,7 @@ while [ "$#" -gt 0 ]; do
       ;;
     *)
       echo "Unknown option: $1"
+      echo
       usage
       exit 1
       ;;
@@ -108,14 +112,13 @@ if [ ! -f /etc/alpine-release ]; then
   echo "Warning: This script is designed for Alpine Linux with OpenRC."
 fi
 
-echo "[1/6] Installing dependencies..."
-# Added jq for JSON validation, iptables for basic firewall handling
+echo "[1/5] Installing dependencies..."
 apk update
-apk add --no-cache curl unzip openssl ca-certificates net-tools jq iptables ip6tables
+apk add --no-cache curl unzip openssl ca-certificates net-tools
 
 if [ -z "$LOCAL_PORT" ]; then
   LOCAL_PORT="$(random_port)"
-  echo "Random local listen port generated: ${LOCAL_PORT}"
+  echo "Random local listen port: ${LOCAL_PORT}"
 else
   check_port "$LOCAL_PORT"
   echo "Using specified local listen port: ${LOCAL_PORT}"
@@ -128,16 +131,22 @@ else
   LINK_PORT="$LOCAL_PORT"
 fi
 
-echo "[2/6] Installing or updating Xray..."
+echo "[2/5] Installing or updating Xray..."
 cd /tmp
-# Added connection timeout and error handling for the external script download
-if ! curl -L --connect-timeout 10 -o install-release.sh https://github.com/XTLS/Xray-install/raw/main/alpinelinux/install-release.sh; then
+
+if ! curl -fsSL --connect-timeout 10 -o install-release.sh https://github.com/XTLS/Xray-install/raw/main/alpinelinux/install-release.sh; then
   echo "Error: Failed to download Xray installation script. Please check your network."
   exit 1
 fi
+
 ash install-release.sh
 
-echo "[3/6] Generating UUID and REALITY keys..."
+if [ ! -x "$XRAY" ]; then
+  echo "Error: Xray binary not found at ${XRAY}."
+  exit 1
+fi
+
+echo "[3/5] Generating UUID and REALITY keys..."
 
 UUID="$($XRAY uuid)"
 KEYS="$($XRAY x25519 2>&1)"
@@ -154,7 +163,7 @@ fi
 
 SHORT_ID="$(openssl rand -hex 8)"
 
-echo "[4/6] Writing and validating Xray config..."
+echo "[4/5] Writing Xray config..."
 
 mkdir -p /usr/local/etc/xray
 
@@ -229,21 +238,7 @@ cat > /usr/local/etc/xray/config.json <<JSON
 }
 JSON
 
-# Validate JSON syntax using jq
-if ! jq . /usr/local/etc/xray/config.json >/dev/null 2>&1; then
-  echo "Error: Failed to generate a valid JSON configuration."
-  exit 1
-fi
-
-echo "[5/6] Attempting to configure firewall for port ${LOCAL_PORT}..."
-if command -v iptables >/dev/null 2>&1; then
-  iptables -I INPUT -p tcp --dport "${LOCAL_PORT}" -j ACCEPT 2>/dev/null || true
-fi
-if command -v ip6tables >/dev/null 2>&1; then
-  ip6tables -I INPUT -p tcp --dport "${LOCAL_PORT}" -j ACCEPT 2>/dev/null || true
-fi
-
-echo "[6/6] Testing and starting Xray..."
+echo "[5/5] Testing and starting Xray..."
 
 $XRAY run -config /usr/local/etc/xray/config.json -test
 
@@ -273,7 +268,7 @@ echo "Security: REALITY"
 echo "Flow: xtls-rprx-vision"
 echo
 echo "Local listen port: ${LOCAL_PORT}"
-echo "Public connect port: ${LINK_PORT}"
+echo "Public connect port in link: ${LINK_PORT}"
 echo
 echo "UUID: ${UUID}"
 echo "PublicKey: ${PUBLIC_KEY}"
@@ -286,20 +281,31 @@ echo "${IMPORT_LINK}"
 echo
 echo "==================== Important Notes ===================="
 echo
-echo "1. FIREWALL:"
-echo "   The script attempted to open local port ${LOCAL_PORT} using iptables."
-echo "   If your VPS provider has an external web firewall (e.g., AWS, Oracle, Azure),"
-echo "   you MUST manually allow TCP port ${LOCAL_PORT} in their web console."
+echo "1. Dedicated public IP VPS:"
+echo "   If this VPS has a dedicated public IP, use the import link directly."
+echo "   No NAT port forwarding is required."
 echo
-echo "2. NAT VPS USERS:"
-echo "   If this is a NAT VPS, the local port (${LOCAL_PORT}) MUST be one of the ports"
-echo "   assigned to you by your provider. If you used the random port generation,"
-echo "   it likely WILL NOT WORK. Reinstall using: --local <assigned_port>"
+echo "2. NAT VPS:"
+echo "   If this is a NAT VPS, create a TCP forwarding rule in your provider panel:"
 echo
-echo "3. SECURITY (SNI) TIP:"
-echo "   You are currently using '${SNI}' as the SNI."
-echo "   For better anti-blocking, it is recommended to use an SNI that matches"
-echo "   your VPS IP's geographic location (e.g., local corporate or university sites)."
+echo "   Public TCP YOUR_PUBLIC_PORT -> Local TCP ${LOCAL_PORT}"
+echo
+echo "   Then replace the port in the import link with YOUR_PUBLIC_PORT."
+echo
+echo "   Example:"
+echo "   Public TCP 49330 -> Local TCP ${LOCAL_PORT}"
+echo "   Use port 49330 in your client."
+echo
+echo "   If you already know the public NAT port, you can install like this:"
+echo "   ash install.sh --public YOUR_PUBLIC_PORT"
+echo
+echo "   If your provider only allows specific local ports, install like this:"
+echo "   ash install.sh --local ALLOWED_LOCAL_PORT --public YOUR_PUBLIC_PORT"
+echo
+echo "3. Firewall:"
+echo "   This script does not modify firewall rules."
+echo "   If your provider has a web firewall or security group, allow TCP port ${LOCAL_PORT}."
+echo "   For NAT VPS users, usually you only need to configure the provider's port forwarding panel."
 echo
 echo "Check status:"
 echo "  rc-service xray status"
