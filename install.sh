@@ -279,35 +279,53 @@ echo "Import link:"
 echo
 echo "${IMPORT_LINK}"
 echo
-echo "==================== Important Notes ===================="
+echo "================ 安装完成 ================"
+echo "协议 (Protocol): VLESS"
+echo "传输 (Transport): TCP"
+echo "安全 (Security): REALITY"
+echo "流控 (Flow): xtls-rprx-vision"
 echo
-echo "1. Dedicated public IP VPS:"
-echo "   If this VPS has a dedicated public IP, use the import link directly."
-echo "   No NAT port forwarding is required."
+echo "本地监听端口: ${LOCAL_PORT}"
+echo "链接中的公网端口: ${LINK_PORT}"
 echo
-echo "2. NAT VPS:"
-echo "   If this is a NAT VPS, create a TCP forwarding rule in your provider panel:"
+echo "UUID: ${UUID}"
+echo "PublicKey: ${PUBLIC_KEY}"
+echo "ShortID: ${SHORT_ID}"
+echo "SNI: ${SNI}"
 echo
-echo "   Public TCP YOUR_PUBLIC_PORT -> Local TCP ${LOCAL_PORT}"
+echo "导入链接 (Import link):"
 echo
-echo "   Then replace the port in the import link with YOUR_PUBLIC_PORT."
+echo "${IMPORT_LINK}"
 echo
-echo "   Example:"
-echo "   Public TCP 49330 -> Local TCP ${LOCAL_PORT}"
-echo "   Use port 49330 in your client."
+echo "==================== 重要提示 ===================="
 echo
-echo "   If you already know the public NAT port, you can install like this:"
-echo "   ash install.sh --public YOUR_PUBLIC_PORT"
+echo "1. 独立公网 IP 的 VPS（独立小鸡）："
+echo "   如果你的机器有独立公网 IP，请直接复制上面的链接导入客户端即可。"
+echo "   不需要设置任何 NAT 端口转发。"
 echo
-echo "   If your provider only allows specific local ports, install like this:"
-echo "   ash install.sh --local ALLOWED_LOCAL_PORT --public YOUR_PUBLIC_PORT"
+echo "2. NAT VPS（NAT 小鸡）："
+echo "   如果这是 NAT 小鸡，请去你的商家控制面板创建一个 TCP 端口转发规则："
 echo
-echo "3. Firewall:"
-echo "   This script does not modify firewall rules."
-echo "   If your provider has a web firewall or security group, allow TCP port ${LOCAL_PORT}."
-echo "   For NAT VPS users, usually you only need to configure the provider's port forwarding panel."
+echo "   公网 TCP 端口 (你的外部端口) -> 内网 TCP 端口 ${LOCAL_PORT}"
 echo
-echo "Check status:"
-echo "  rc-service xray status"
-echo "  netstat -lntp | grep ${LOCAL_PORT}"
-echo "========================================================="
+echo "   导入节点后，请务必将客户端中的端口修改为你映射出的【公网 TCP 端口】。"
+echo
+echo "   举个例子："
+echo "   面板映射：公网 TCP 49330 -> 内网 TCP ${LOCAL_PORT}"
+echo "   那么你的客户端节点端口就填 49330。"
+echo
+echo "   如果你下次安装前就已经知道公网端口了，可以这样一键安装："
+echo "   ash install.sh --public 你的公网端口"
+echo
+echo "   如果你的商家限制了只能用指定的内网端口，请这样安装："
+echo "   ash install.sh --local 商家指定的内网端口 --public 你的公网端口"
+echo
+echo "3. 防火墙说明："
+echo "   本脚本不会修改系统防火墙规则。"
+echo "   如果你的商家有外部安全组（控制台网页防火墙），请放行 TCP 端口 ${LOCAL_PORT}。"
+echo "   对于大部分 NAT 小鸡，通常只需要在商家的面板里设置好端口映射即可。"
+echo
+echo "常用命令："
+echo "  查看状态: rc-service xray status"
+echo "  查看端口: netstat -lntp | grep ${LOCAL_PORT}"
+echo "=================================================="
