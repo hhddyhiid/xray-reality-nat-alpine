@@ -2,7 +2,7 @@
 
 Alpine NAT VPS 一键安装 VLESS + TCP + REALITY + Vision。
 
-适合只有 TCP 端口转发、不能转发 UDP 的 NAT 小鸡。
+适合于有 TCP 端口转发、不能转发 UDP 的 NAT 小鸡。（其他也可尝试）
 
 ## 一键使用指令
 
