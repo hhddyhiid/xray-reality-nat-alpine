@@ -1,4 +1,3 @@
-```markdown
 # xray-reality-nat-alpine
 
 Alpine NAT VPS 一键安装 VLESS + TCP + REALITY + Vision。
