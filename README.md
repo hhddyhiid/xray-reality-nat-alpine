@@ -1,6 +1,6 @@
 # xray-reality-nat-alpine
 Alpine NAT VPS one-click VLESS TCP REALITY installer Public
-一键使用指令
+## 一键使用指令
 apk add --no-cache curl && curl -L -o install.sh https://raw.githubusercontent.com/hhddyhiid/xray-reality-nat-alpine/main/install.sh && ash install.sh
 # xray-reality-nat-alpine
 
